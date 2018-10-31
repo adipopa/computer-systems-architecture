@@ -1,0 +1,42 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; 1. Additions, subtractions - Unsigned representation
+    14 00000000 CC                          a db 204
+    15 00000001 F8A7                        b dw 43000
+    16 00000003 C0939BC013000000            d dq 84835800000
+    17                                  
+    18                                  ; our code starts here
+    19                                  segment code use32 class=code
+    20                                      start:
+    21                                          ; Problem 8 from each topic
+    22                                          
+    23                                          ; 1. Additions, subtractions (Unsigned representation) -> (a+b-d)+(a-b-d)
+    24 00000000 A0[00000000]                    mov al, [a] ; AL = a
+    25 00000005 B400                            mov ah, 0 ; AX = AL = a (unsigned conversion)
+    26                                          
+    27 00000007 660305[01000000]                add ax, [b] ; AX = AX + b = a + b
+    28                                          
+    29 0000000E 66BA0000                        mov dx, 0 ; DX:AX = AX = a + b (unsigned conversion)
+    30                                          
+    31 00000012 6652                            push dx
+    32 00000014 6650                            push ax
+    33 00000016 58                              pop eax ; EAX = DX:AX = a + b
+    34                                          
+    35 00000017 BA00000000                      mov edx, 0 ; EDX:EAX = EAX = a + b (unsigned conversion)
+    36                                          
+    37 0000001C 0305[03000000]                  add eax, [d]
+    38 00000022 1315[07000000]                  adc edx, [d+4] ; EDX:EAX = EDX:EAX + d + CF = a + b + d [expected result: 84835843204]
+    39                                      
+    40                                          ; exit(0)
+    41 00000028 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    42 0000002A FF15[00000000]                  call    [exit]       ; call exit to terminate the program
