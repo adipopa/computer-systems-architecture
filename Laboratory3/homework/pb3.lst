@@ -1,0 +1,78 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; 3. Multiplications, divisions - Unsigned representation and signed representation
+    14 00000000 BE0A                        a dw 2750
+    15 00000002 AC0D                        b dw 3500
+    16 00000004 7C                          c db 124
+    17 00000005 3D                          d db 61
+    18 00000006 4C1D0600                    e dd 400716
+    19 0000000A E4201E0000000000            x dq 1974500
+    20                                  
+    21                                  ; our code starts here
+    22                                  segment code use32 class=code
+    23                                      start:
+    24                                          ; Problem 8 from each topic
+    25                                          
+    26                                          ; 3. Multiplications, divisions - Unsigned representation and signed representation -> 1/a+200*b-c/(d+1)+x/a-e
+    27 00000000 66BA0000                        mov dx, 0
+    28 00000004 66B80100                        mov ax, 1 ; DX:AX = 1
+    29 00000008 66F73D[00000000]                idiv word [a] ; AX = DX:AX / a = 1 / a
+    30                                          
+    31 0000000F 6699                            cwd ; DX:AX = AX = 1 / a (signed conversion)
+    32                                          
+    33 00000011 6689C1                          mov cx, ax
+    34 00000014 6689D3                          mov bx, dx ; BX:CX = DX:AX = 1 / a
+    35                                          
+    36 00000017 66B8C800                        mov ax, 200
+    37 0000001B 66F72D[02000000]                imul word [b] ; DX:AX = AX * b = 200 * b
+    38                                          
+    39 00000022 6601C1                          add cx, ax
+    40 00000025 6611D3                          adc bx, dx ; BX:CX = BX:CX + DX:AX + CF = 1 / a + 200 * b
+    41                                          
+    42 00000028 A0[04000000]                    mov al, [c] ; AL = c
+    43 0000002D 6698                            cbw ; AX = AL = c (signed conversion)
+    44                                          
+    45 0000002F 8A15[05000000]                  mov dl, [d] ; DL = d
+    46 00000035 80C201                          add dl, 1 ; DL = DL + 1 = d + 1
+    47                                          
+    48 00000038 F6FA                            idiv dl ; AL = AX / DL = c / (d + 1)
+    49                                          
+    50 0000003A 6698                            cbw ; AX = AL = c / (d + 1)
+    51 0000003C 6699                            cwd ; DX:AX = AX = c / (d + 1)
+    52                                          
+    53 0000003E 6629C1                          sub cx, ax
+    54 00000041 6619D3                          sbb bx, dx ; BX:CX = BX:CX - DX:AX = 1 / a + 200 * b - c / (d + 1)
+    55                                          
+    56 00000044 6653                            push bx
+    57 00000046 6651                            push cx
+    58                                          
+    59 00000048 66A1[00000000]                  mov ax, [a] ; AX = a
+    60                                          
+    61 0000004E 98                              cwde ; EAX = AX = a
+    62                                          
+    63 0000004F 89C3                            mov ebx, eax ; EBX =  EAX = a
+    64                                          
+    65 00000051 A1[0A000000]                    mov eax, [x]
+    66 00000056 8B15[0E000000]                  mov edx, [x+4] ; EDX:EAX = x
+    67                                          
+    68 0000005C F7FB                            idiv dword ebx ; EAX = EDX:EAX / EBX = x / a
+    69                                          
+    70 0000005E 5A                              pop edx ; EDX = BX:CX = 1 / a + 200 * b - c / (d + 1)
+    71                                          
+    72 0000005F 01C2                            add edx, eax ; EDX = EDX - EAX = 1 / a + 200 * b - c / (d + 1) + x / a
+    73                                          
+    74 00000061 2B15[06000000]                  sub edx, [e] ; EDX = EDX - e = 1 / a + 200 * b - c / (d + 1) + x / a - e [expected result: 300000]
+    75                                      
+    76                                          ; exit(0)
+    77 00000067 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    78 00000069 FF15[00000000]                  call    [exit]       ; call exit to terminate the program
