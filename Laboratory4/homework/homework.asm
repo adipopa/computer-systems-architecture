@@ -24,7 +24,7 @@ segment data use32 class=data
 segment code use32 class=code
     start:
     
-        mov ebx, 0 ; we compute the result in BX
+        mov ebx, 0 ; we compute the result in EBX
         
         mov eax, [T] ; EAX = T
         and eax, 00000000000000011111110000000000b ; we isolate bits 10-16 of T
