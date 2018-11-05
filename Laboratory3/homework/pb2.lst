@@ -1,0 +1,52 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  
+    11                                  ; our data is declared here (the variables needed by our program)
+    12                                  segment data use32 class=data
+    13                                      ; 2. Additions, subtractions - Signed representation
+    14 00000000 39                          a db 57
+    15 00000001 CEA1                        b dw -24114
+    16 00000003 045DCE00                    c dd 13524228
+    17 00000007 0081F03157000000            d dq 374500000000
+    18                                  
+    19                                  ; our code starts here
+    20                                  segment code use32 class=code
+    21                                      start:
+    22                                          ; Problem 8 from each topic
+    23                                          
+    24                                          ; 2. Additions, subtractions (Signed representation) -> (b+c+d)-(a+a)
+    25 00000000 66A1[01000000]                  mov ax, [b] ; AX = b
+    26                                          
+    27 00000006 98                              cwde ; EAX = AX = b (signed conversion)
+    28                                          
+    29 00000007 0305[03000000]                  add eax, [c] ; EAX = EAX + c + CF = b + c
+    30                                          
+    31 0000000D 99                              cdq ; EDX:EAX = EAX = b + c (signed conversion)
+    32                                          
+    33 0000000E 0305[07000000]                  add eax, [d]
+    34 00000014 1315[0B000000]                  adc edx, [d+4] ; EDX:EAX = EDX:EAX + d + CF = b + c + d
+    35                                  
+    36 0000001A 89C1                            mov ecx, eax
+    37 0000001C 89D3                            mov ebx, edx ; EBX:ECX = EDX:EAX = b + c + d
+    38                                          
+    39 0000001E A0[00000000]                    mov al, [a] ; AL = a
+    40                                          
+    41 00000023 0205[00000000]                  add al, [a] ; AL = a + a
+    42                                          
+    43 00000029 6698                            cbw ; AX = AL = a + a (signed conversion)
+    44 0000002B 98                              cwde ; EAX = AX = a + a  (signed conversion)
+    45 0000002C 99                              cdq ; EDX:EAX = EAX = a + a (signed conversion)
+    46                                          
+    47 0000002D 29C1                            sub ecx, eax
+    48 0000002F 19D3                            sbb ebx, edx ; EBX:ECX = EBX:ECX - EDX:EAX = (b + c + d) - (a + a) [expected result: 374513500000]
+    49                                      
+    50                                          ; exit(0)
+    51 00000031 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    52 00000033 FF15[00000000]                  call    [exit]       ; call exit to terminate the program
