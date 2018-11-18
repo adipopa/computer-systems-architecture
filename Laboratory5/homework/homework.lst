@@ -1,0 +1,51 @@
+     1                                  ; 8. A character string S is given. Obtain the string D that contains all capital letters of the string S. 
+     2                                  
+     3                                  bits 32 ; assembling for the 32 bits architecture
+     4                                  
+     5                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     6                                  global start        
+     7                                  
+     8                                  ; declare external functions needed by our program
+     9                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+    10                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    12                                  
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15 00000000 614162423225784D            s db 'a', 'A', 'b', 'B', '2', '%', 'x', 'M' ; declare the initial string s
+    16                                  	l equ $-s ; l keeps the length of the initial string s
+    17 00000008 00<rept>                	d times l db 0 ; reserve a memory space of l for the destination string d and initialize it
+    18                                  
+    19                                  ; our code starts here
+    20                                  segment code use32 class=code
+    21                                      start:
+    22 00000000 B908000000                      mov ecx, l ; we put the length in ECX for iterating through the loop for l times
+    23 00000005 BE00000000                      mov esi, 0 ; initialize ESI with 0
+    24 0000000A BF00000000                      mov edi, 0 ; initialize EDI with 0
+    25                                          
+    26 0000000F E31C                            jecxz finishProgram ; end the program if ECX is zero (s is an empty string)
+    27                                          
+    28                                          keepCapitalLetters:
+    29 00000011 8A86[00000000]                      mov al, [s + esi] ; move a letter from the string s to AL
+    30                                              
+    31 00000017 B341                                mov bl, 'A' ; move the character 'A' to BL
+    32 00000019 38D8                                cmp al, bl ; compare AL with BL (current letter of s with character 'A')
+    33 0000001B 720D                                jb skipCurrent ; skip the current character if AL < BL (a < 'A')
+    34                                              
+    35 0000001D B35A                                mov bl, 'Z' ; move the character 'Z' to BL
+    36 0000001F 38D8                                cmp al, bl ; compare AL with BL (current letter of s with character 'Z')
+    37 00000021 7707                                ja skipCurrent ; skip the current character if AL > BL (a > 'Z')
+    38                                              
+    39 00000023 8887[08000000]                      mov [d + edi], al ; if the character is a capital letter add it to the destination string d
+    40 00000029 47                                  inc edi ; increment EDI
+    41                                              
+    42                                              skipCurrent:
+    43 0000002A 46                                  inc esi ; increment ESI
+    44                                              
+    45 0000002B E2E4                            loop keepCapitalLetters ; start the main loop
+    46                                          
+    47                                          finishProgram: ; the end of the program
+    48                                      
+    49                                          ; exit(0)
+    50 0000002D 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    51 0000002F FF15[00000000]                  call    [exit]       ; call exit to terminate the program
