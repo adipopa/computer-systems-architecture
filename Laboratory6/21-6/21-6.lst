@@ -1,0 +1,52 @@
+     1                                  ; 21. Being given a string of words, obtain the string (of bytes) of the digits in base 10 of each word from this string.
+     2                                  
+     3                                  bits 32 ; assembling for the 32 bits architecture
+     4                                  
+     5                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     6                                  global start        
+     7                                  
+     8                                  ; declare external functions needed by our program
+     9                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+    10                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    12                                  
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15 00000000 39302A51F411                sir dw 12345, 20778, 4596  ; the initial string sir
+    16                                      l equ ($-sir) / 2 ; the length of the string (in words)
+    17 00000006 0A00                    	ten dw 10 ; variabile used for getting the right most digit of a number
+    18 00000008 00<rept>                    dest times l db 0 ; reserve a memory space of l for the destination string dest and initialize it
+    19                                  
+    20                                  ; our code starts here
+    21                                  segment code use32 class=code
+    22                                      start:
+    23 00000000 BE[00000000]                    mov esi, sir ; in esi we will store the FAR address of the string 's'
+    24 00000005 FC                              cld ; parse the string from left to right (DF = 0)
+    25 00000006 B903000000                      mov ecx, l ; we will parse the elements of the string in the loop with l iterations
+    26 0000000B BF[08000000]                    mov edi, dest ; in edi we will store the FAR address of the string 'd'
+    27                                          
+    28 00000010 E31C                            jecxz finishProgram ; end the program if ECX is zero (s is an empty string)
+    29                                          
+    30                                          digitsInBase10:
+    31 00000012 66AD                                lodsw ; in AX we will have the current word from the string
+    32                                              
+    33                                              extractDigit:
+    34 00000014 66BA0000                                mov dx, 0 ; clear the DX registry -> DX:AX = AX
+    35                                                  
+    36 00000018 66F735[06000000]                        div word[ten] ; in DX we will have the right most digit of DX:AX and in AX the initial number without the right most digit
+    37                                                  
+    38 0000001F 6689C3                                  mov bx, ax ; BX = AX so we can compare it below
+    39                                                  
+    40 00000022 6689D0                                  mov ax, dx ; AX = DX so that AL (the low byte from AX) can be stored in the destination string
+    41 00000025 AA                                      stosb ; store the value of the byte AL in EDI
+    42                                                  
+    43 00000026 6683FB00                                cmp bx, 0 ; check whether the current number is 0 
+    44 0000002A 75E8                                    jne extractDigit ; if not, continue extracting the next digit (we haven't found all the digits)
+    45                                              
+    46 0000002C E2E4                            loop digitsInBase10 ; if there are more elements (ecx>0) resume the loop.
+    47                                          
+    48                                          finishProgram: ; the end of the program
+    49                                      
+    50                                          ; exit(0)
+    51 0000002E 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    52 00000030 FF15[00000000]                  call    [exit]       ; call exit to terminate the program
