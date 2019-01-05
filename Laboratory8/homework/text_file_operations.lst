@@ -1,0 +1,118 @@
+     1                                  ; 18. A text file is given. The text contains letters, spaces and points. Read the content of the file, determine the number of words and display the result on the screen. (A word is a sequence of characters separat
+     2                                  
+     3                                  bits 32 ; assembling for the 32 bits architecture
+     4                                  
+     5                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     6                                  global start        
+     7                                  
+     8                                  ; declare external functions needed by our program
+     9                                  extern exit, fopen, fread, fclose, printf ; tell nasm that exit exists even if we won't be defining it
+    10                                  import exit msvcrt.dll ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                  import fopen msvcrt.dll 
+    12                                  import fread msvcrt.dll 
+    13                                  import fclose msvcrt.dll 
+    14                                  import printf msvcrt.dll
+    15                                  
+    16                                  ; our data is declared here (the variables needed by our program)
+    17                                  segment data use32 class=data
+    18 00000000 696E7075742E747874-         file_name db "input.txt", 0 ; filename to be read
+    18 00000009 00                 
+    19 0000000A 7200                        access_mode db "r", 0 ; file access mode:
+    20                                                            ; r - opens a file for reading. The file must exist. 
+    21 0000000C FFFFFFFF                    file_descriptor dd -1 ; variable to hold the file descriptor
+    22                                      len equ 100 ; maximum number of characters to read
+    23 00000010 00<rept>                    text times len db 0 ; string to hold the text which is read from file
+    24                                      
+    25 00000074 00000000                    words_count dd 0 ; the number of characters in the file
+    26                                      
+    27 00000078 546865206E756D6265-         resultFormat db "The number of words in the input.txt file: %d", 0 ; %d will be replaced with a number
+    27 00000081 72206F6620776F7264-
+    27 0000008A 7320696E2074686520-
+    27 00000093 696E7075742E747874-
+    27 0000009C 2066696C653A202564-
+    27 000000A5 00                 
+    28                                  
+    29                                  ; our code starts here
+    30                                  segment code use32 class=code
+    31                                      start:
+    32                                          ; call fopen() to create the file
+    33                                          ; fopen() will return a file descriptor in the EAX or 0 in case of error
+    34                                          ; eax = fopen(file_name, access_mode)
+    35 00000000 68[0A000000]                    push dword access_mode     
+    36 00000005 68[00000000]                    push dword file_name
+    37 0000000A FF15[00000000]                  call [fopen]
+    38 00000010 83C408                          add esp, 4*2 ; clean-up the stack
+    39                                  
+    40 00000013 A3[0C000000]                    mov [file_descriptor], eax ; store the file descriptor returned by fopen
+    41                                  
+    42                                          ; check if fopen() has successfully created the file (EAX != 0)
+    43 00000018 83F800                          cmp eax, 0
+    44 0000001B 0F8482000000                    je finishProgram
+    45                                  
+    46                                          ; read the text from file using fread()
+    47                                          ; after the fread() call, EAX will contain the number of chars we've read 
+    48                                          ; eax = fread(text, 1, len, file_descriptor)
+    49 00000021 FF35[0C000000]                  push dword [file_descriptor]
+    50 00000027 6A64                            push dword len
+    51 00000029 6A01                            push dword 1
+    52 0000002B 68[10000000]                    push dword text        
+    53 00000030 FF15[00000000]                  call [fread]
+    54 00000036 83C410                          add esp, 4*4
+    55                                          
+    56 00000039 BE00000000                      mov esi, 0 ; initialize ESI (our iterator) with 0
+    57 0000003E BB00000000                      mov ebx, 0 ; make sure EBX is empty
+    58 00000043 B900000000                      mov ecx, 0 ; ECX will act as a counter for the number of characters before a space / period
+    59 00000048 83E801                          sub eax, 1 ; we're going to check every character until length of text - 1
+    60                                          
+    61                                          foundWord:
+    62                                              ; check if there were any letters before the current character
+    63 0000004B 83F900                              cmp ecx, 0
+    64 0000004E 740C                                je nextCharacter ; if not, continue with the next character
+    65                                              
+    66 00000050 8305[74000000]01                    add [words_count], dword 1 ; else increase the words count by one
+    67 00000057 B900000000                          mov ecx, 0 ; and reset the character counter
+    68                                          
+    69                                          nextCharacter:
+    70 0000005C 8A9E[10000000]                      mov bl, [text + esi] ; move a character from the string text to BL
+    71                                              
+    72 00000062 46                                  inc esi ; increment ESI
+    73                                              
+    74                                              ; if the current character is a space, we're going to check if we found a word
+    75 00000063 80FB20                              cmp bl, byte ' '
+    76 00000066 74E3                                je foundWord
+    77                                              
+    78                                              ; the same if the current character is a period
+    79 00000068 80FB2E                              cmp bl, byte '.'
+    80 0000006B 74DE                                je foundWord
+    81                                              
+    82 0000006D 83C101                              add ecx, 1 ; else add 1 to the character counter
+    83                                              
+    84 00000070 39C6                                cmp esi, eax ; if ESI is smaller than EAX then we take the next character and repeat the process
+    85 00000072 72E8                                jb nextCharacter
+    86                                             
+    87                                          ; one check remaining: if the content of input.txt ends with a word, count it
+    88 00000074 83F900                          cmp ecx, 0
+    89 00000077 7407                            je notAWord
+    90                                          
+    91 00000079 8305[74000000]01                add [words_count], dword 1
+    92                                          
+    93                                          notAWord:
+    94                                          
+    95                                          ; will call printf(resultFormat, [words_count]) => will print: „The number of words in the input.txt file: [words_count]”
+    96                                          ; place parameters on the stack from right to left
+    97 00000080 FF35[74000000]                  push dword [words_count]
+    98 00000086 68[78000000]                    push dword resultFormat ; ! on the stack is placed the address of the string, not its value
+    99 0000008B FF15[00000000]                  call [printf] ; call function printf for printing
+   100 00000091 83C408                          add esp, 4 * 2 ; free parameters on the stack; 4 = size of dword; 2 = number of parameters
+   101                                  
+   102                                          ; call fclose() to close the file
+   103                                          ; fclose(file_descriptor)
+   104 00000094 FF35[0C000000]                  push dword [file_descriptor]
+   105 0000009A FF15[00000000]                  call [fclose]
+   106 000000A0 83C404                          add esp, 4
+   107                                          
+   108                                          finishProgram: ; end of the program
+   109                                      
+   110                                          ; exit(0)
+   111 000000A3 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   112 000000A5 FF15[00000000]                  call    [exit]       ; call exit to terminate the program
