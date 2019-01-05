@@ -1,0 +1,54 @@
+     1                                  ; 26. A string of doublewords is given. Compute the string formed by the high bytes of the low words from the elements of the doubleword string and these bytes should be multiple of 10.
+     2                                  
+     3                                  bits 32 ; assembling for the 32 bits architecture
+     4                                  
+     5                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     6                                  global start        
+     7                                  
+     8                                  ; declare external functions needed by our program
+     9                                  extern exit               ; tell nasm that exit exists even if we won't be defining it
+    10                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    12                                  
+    13                                  ; our data is declared here (the variables needed by our program)
+    14                                  segment data use32 class=data
+    15 00000000 785634124D3C2B1A76-         s dd 12345678h, 1A2B3C4Dh, 9E98DC76h ; the initial string s
+    15 00000009 DC989E             
+    16                                      l equ ($-s) / 4 ; the length of the string (in doublewords)
+    17 0000000C 0A                      	ten db 10 ; variabile used for testing divisibility by 10
+    18 0000000D 00<rept>                    d times l db 0 ; reserve a memory space of l for the destination string d and initialize it
+    19                                  
+    20                                  ; our code starts here
+    21                                  segment code use32 class=code
+    22                                      start:
+    23 00000000 BE[00000000]                    mov esi, s ; in esi we will store the FAR address of the string 's'
+    24 00000005 FC                              cld ; parse the string from left to right (DF = 0)
+    25 00000006 B903000000                      mov ecx, l ; we will parse the elements of the string in the loop with l iterations
+    26 0000000B BF[0D000000]                    mov edi, d ; in edi we will store the FAR address of the string 'd'
+    27                                          
+    28 00000010 E318                            jecxz finishProgram ; end the program if ECX is zero (s is an empty string)
+    29                                          
+    30                                          multiplesOfTen:
+    31 00000012 AD                                  lodsd ; in eax we will have the current doubleword from the string
+    32                                              
+    33 00000013 C1E808                              shr eax, 8 ; we are interested in the high byte (most significant) of the low word (least significant) of the current doubleword (AH)
+    34 00000016 B400                                mov ah, 0 ; so we shift eax 8 positions to the right so the high byte will now be in AL
+    35                                              
+    36 00000018 6650                                push ax ; push the value of AL to the stack before we make the division
+    37                                              
+    38 0000001A F635[0C000000]                      div byte[ten] ; check whether AL is divisible by 10
+    39 00000020 80FC00                              cmp ah, 0 ; if the remainder is 0, resume the loop 'multiplesOfTen' else add the current byte to the destination string 'd'
+    40                                              
+    41 00000023 7503                                jnz nonDivisible
+    42                                              
+    43 00000025 6658                                pop ax ; pop the value from the stack back to AL
+    44 00000027 AA                                  stosb ; store the value of the byte AL in EDI
+    45                                              
+    46                                              nonDivisible:
+    47 00000028 E2E8                            loop multiplesOfTen ; if there are more elements (ecx>0) resume the loop.
+    48                                          
+    49                                          finishProgram: ; the end of the program
+    50                                      
+    51                                          ; exit(0)
+    52 0000002A 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    53 0000002C FF15[00000000]                  call    [exit]       ; call exit to terminate the program
