@@ -1,0 +1,90 @@
+     1                                  bits 32
+     2                                  segment code use32 public code
+     3                                  global compute_byte_ranks
+     4                                  
+     5                                  segment data use32 class=data
+     6 00000000 00<rept>                    bytes_of_max_val times 100 db 0
+     7 00000064 00000000                    res_s dd 0
+     8 00000068 00000000                    len_s dd 0
+     9 0000006C 00000000                    c_dword dd 0
+    10 00000070 00                          max_byte db 0
+    11 00000071 00000000                    c_sum dd 0
+    12 00000075 00                          c_byte db 0
+    13                                  
+    14                                  compute_byte_ranks:
+    15 00000076 8B742404                    mov esi, [esp + 4]
+    16                                      
+    17 0000007A 8B442408                    mov eax, [esp + 4*2]
+    18 0000007E A3[64000000]                mov [res_s], eax
+    19                                      
+    20 00000083 8B44240C                    mov eax, [esp + 4*3]
+    21 00000087 A3[68000000]                mov [len_s], eax
+    22                                      
+    23 0000008C BF[00000000]                mov edi, bytes_of_max_val
+    24 00000091 8B0D[68000000]              mov ecx, [len_s]
+    25                                  
+    26 00000097 E37B                        jecxz end_proc
+    27                                      
+    28                                      iter_dwords:
+    29 00000099 51                              push ecx
+    30                                  
+    31 0000009A AD                              lodsd
+    32 0000009B A3[6C000000]                    mov dword [c_dword], eax
+    33                                          
+    34 000000A0 C605[70000000]00                mov [max_byte], byte 0
+    35 000000A7 B904000000                      mov ecx, 4
+    36                                  
+    37                                          iter_bytes:
+    38 000000AC 8A81[6B000000]                      mov al, [c_dword + ecx - 1]
+    39                                              
+    40 000000B2 3A05[70000000]                      cmp al, [max_byte]
+    41 000000B8 7205                                jb end_if
+    42 000000BA A2[70000000]                        mov [max_byte], al
+    43                                              end_if:
+    44 000000BF E2EB                            loop iter_bytes
+    45                                          
+    46 000000C1 A0[70000000]                    mov al, [max_byte]
+    47 000000C6 AA                              stosb
+    48                                          
+    49 000000C7 6698                            cbw
+    50 000000C9 98                              cwde
+    51 000000CA 0105[71000000]                  add [c_sum], eax
+    52                                          
+    53 000000D0 59                              pop ecx
+    54 000000D1 E2C6                        loop iter_dwords
+    55                                      
+    56 000000D3 BE[00000000]                mov esi, bytes_of_max_val
+    57 000000D8 8B3D[64000000]              mov edi, [res_s]
+    58 000000DE 8B0D[68000000]              mov ecx, [len_s]
+    59                                      build_ranks:
+    60 000000E4 51                              push ecx
+    61                                          
+    62 000000E5 AC                              lodsb
+    63 000000E6 A2[75000000]                    mov [c_byte], al
+    64                                          
+    65 000000EB 56                              push esi
+    66                                          
+    67 000000EC BB01000000                      mov ebx, 1
+    68 000000F1 BE[00000000]                    mov esi, bytes_of_max_val
+    69 000000F6 8B0D[68000000]                  mov ecx, [len_s]
+    70                                          inner_loop:
+    71 000000FC AC                                  lodsb
+    72 000000FD 3A05[75000000]                      cmp al, [c_byte]
+    73 00000103 7601                                jbe end_if2
+    74 00000105 43                                  inc ebx
+    75                                              end_if2:
+    76 00000106 E2F4                            loop inner_loop
+    77                                          
+    78 00000108 89D8                            mov eax, ebx
+    79 0000010A AB                              stosd
+    80                                          
+    81 0000010B 5E                              pop esi
+    82                                  
+    83 0000010C 59                              pop ecx
+    84 0000010D E2D5                        loop build_ranks
+    85                                      
+    86 0000010F A1[71000000]                mov eax, [c_sum]
+    87                                      
+    88                                      end_proc:
+    89                                      
+    90 00000114 C20C00                      ret 4 * 3

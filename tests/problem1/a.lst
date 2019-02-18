@@ -1,0 +1,64 @@
+     1                                  bits 32
+     2                                  
+     3                                  global start
+     4                                  
+     5                                  extern exit, printf
+     6                                  import exit msvcrt.dll
+     7                                  import printf msvcrt.dll
+     8                                  
+     9                                  extern compute_byte_ranks
+    10                                  
+    11                                  segment data use32 class=data
+    12 00000000 78A63412785634127D-         sir dd 1234A678h, 12345678h, 01AC3B47Dh, 0DCFE9876h
+    12 00000009 B4C31A7698FEDC     
+    13                                      len equ ($ - sir) / 4 ; len of string sir in doublewords
+    14                                      
+    15 00000010 00000000<rept>              rsir times len dd 0 ; the result string
+    16                                      
+    17 00000020 00000000                    sum dd 0
+    18                                      
+    19 00000024 256400                      p_format db "%d", 0
+    20 00000027 202D20746865207375-         p_sum_format db " - the sum of these bytes: %d", 0
+    20 00000030 6D206F662074686573-
+    20 00000039 652062797465733A20-
+    20 00000042 256400             
+    21                                      
+    22                                  segment code use32 class=code
+    23                                      start:
+    24 00000000 31C0                            xor eax, eax
+    25                                          
+    26 00000002 6A04                            push dword len
+    27 00000004 68[10000000]                    push dword rsir
+    28 00000009 68[00000000]                    push dword sir
+    29 0000000E E8(00000000)                    call compute_byte_ranks
+    30                                          
+    31 00000013 A3[20000000]                    mov dword [sum], eax
+    32                                  
+    33 00000018 B904000000                      mov ecx, len
+    34                                          
+    35 0000001D 83F900                          cmp ecx, 0
+    36 00000020 742D                            je end_program
+    37                                          
+    38 00000022 BE[10000000]                    mov esi, rsir
+    39                                          print_ranks:
+    40 00000027 51                                  push ecx
+    41                                  
+    42 00000028 AD                                  lodsd
+    43                                              
+    44 00000029 50                                  push eax
+    45 0000002A 68[24000000]                        push dword p_format
+    46 0000002F FF15[00000000]                      call [printf]
+    47 00000035 83C408                              add esp, 4*2
+    48                                              
+    49 00000038 59                                  pop ecx
+    50 00000039 E2EC                            loop print_ranks
+    51                                          
+    52 0000003B FF35[20000000]                  push dword [sum]
+    53 00000041 68[27000000]                    push dword p_sum_format
+    54 00000046 FF15[00000000]                  call [printf]
+    55 0000004C 83C408                          add esp, 4*2
+    56                                          
+    57                                          end_program:
+    58                                      
+    59 0000004F 6A00                            push dword 0
+    60 00000051 FF15[00000000]                  call [exit]
