@@ -1,0 +1,118 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit, printf, scanf, fopen, fread, fclose               ; tell nasm that exit exists even if we won't be defining it
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                                            ; msvcrt.dll contains exit, printf and all the other important C-runtime specific functions
+    10                                  import printf msvcrt.dll
+    11                                  import scanf msvcrt.dll
+    12                                  import fopen msvcrt.dll
+    13                                  import fread msvcrt.dll
+    14                                  import fclose msvcrt.dll
+    15                                  
+    16                                  ; our data is declared here (the variables needed by our program)
+    17                                  segment data use32 class=data
+    18 00000000 46696C65206E616D65-         msg_r db "File name: ", 0
+    18 00000009 3A2000             
+    19                                      
+    20 0000000C 00<rept>                    file_name times 100 db 0
+    21 00000070 257300                      format_r db "%s", 0
+    22                                      
+    23 00000073 7200                        access_mode db "r", 0
+    24 00000075 FFFFFFFF                    file_descriptor dd -1
+    25                                      
+    26 00000079 00<rept>                    text times 100 db 0
+    27 000000DD 00000000                    len dd 0
+    28                                      
+    29 000000E1 00000000                    current_char dd 0
+    30 000000E5 00000000                    is_last_word dd 0
+    31                                      
+    32 000000E9 256300                      format_p db "%c", 0
+    33                                      
+    34 000000EC 0A00                        format_newline db 10, 0
+    35                                  
+    36                                  ; our code starts here
+    37                                  segment code use32 class=code
+    38                                      start:
+    39 00000000 68[00000000]                    push dword msg_r
+    40 00000005 FF15[00000000]                  call [printf]
+    41 0000000B 83C404                          add esp, 4 * 1
+    42                                          
+    43 0000000E 68[0C000000]                    push dword file_name
+    44 00000013 68[70000000]                    push dword format_r
+    45 00000018 FF15[00000000]                  call [scanf]
+    46 0000001E 83C408                          add esp, 4 * 2
+    47                                          
+    48 00000021 68[73000000]                    push dword access_mode
+    49 00000026 68[0C000000]                    push dword file_name
+    50 0000002B FF15[00000000]                  call [fopen]
+    51 00000031 83C408                          add esp, 4 * 2
+    52                                          
+    53 00000034 83F800                          cmp eax, 0
+    54 00000037 0F84A8000000                    je stopProgram
+    55                                          
+    56 0000003D A3[75000000]                    mov [file_descriptor], eax
+    57                                          
+    58 00000042 FF35[75000000]                  push dword [file_descriptor]
+    59 00000048 6A64                            push dword 100
+    60 0000004A 6A01                            push dword 1
+    61 0000004C 68[79000000]                    push dword text
+    62 00000051 FF15[00000000]                  call [fread]
+    63 00000057 83C410                          add esp, 4 * 4
+    64                                          
+    65 0000005A A3[DD000000]                    mov dword [len], eax
+    66                                          
+    67 0000005F FF35[75000000]                  push dword [file_descriptor]
+    68 00000065 FF15[00000000]                  call [fclose]
+    69 0000006B 83C404                          add esp, 4 * 1
+    70                                          
+    71 0000006E 31DB                            xor ebx, ebx
+    72 00000070 8B0D[DD000000]                  mov ecx, [len]
+    73                                          iterateText:
+    74 00000076 51                                  push ecx
+    75                                              
+    76 00000077 8A99[78000000]                      mov bl, [text + ecx - 1]
+    77 0000007D 891D[E1000000]                      mov [current_char], ebx
+    78                                              
+    79 00000083 833D[E1000000]20                    cmp [current_char], dword ' '
+    80 0000008A 750A                                jne notTrue1
+    81 0000008C C705[E5000000]0000-                 mov [is_last_word], dword 0
+    81 00000094 0000               
+    82                                              notTrue1:
+    83                                              
+    84 00000096 833D[E5000000]01                    cmp [is_last_word], dword 1
+    85 0000009D 7514                                jne skipChar
+    86                                              
+    87 0000009F FF35[E1000000]                      push dword [current_char]
+    88 000000A5 68[E9000000]                        push dword format_p
+    89 000000AA FF15[00000000]                      call [printf]
+    90 000000B0 83C408                              add esp, 4 * 2
+    91                                              
+    92                                              skipChar:
+    93                                              
+    94 000000B3 833D[E1000000]2E                    cmp [current_char], dword '.'
+    95 000000BA 7518                                jne notTrue2
+    96 000000BC C705[E5000000]0100-                 mov [is_last_word], dword 1
+    96 000000C4 0000               
+    97                                              
+    98 000000C6 68[EC000000]                        push dword format_newline
+    99 000000CB FF15[00000000]                      call [printf]
+   100 000000D1 83C404                              add esp, 4 * 1
+   101                                              
+   102                                              notTrue2:
+   103                                              
+   104 000000D4 59                                  pop ecx
+   105 000000D5 E29F                            loop iterateText
+   106                                              
+   107 000000D7 68[EC000000]                    push dword format_newline
+   108 000000DC FF15[00000000]                  call [printf]
+   109 000000E2 83C404                          add esp, 4 * 1
+   110                                          
+   111                                          stopProgram:
+   112                                      
+   113                                          ; exit(0)
+   114 000000E5 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   115 000000E7 FF15[00000000]                  call    [exit]       ; call exit to terminate the program

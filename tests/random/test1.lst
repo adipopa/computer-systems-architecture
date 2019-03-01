@@ -1,0 +1,175 @@
+     1                                  bits 32 ; assembling for the 32 bits architecture
+     2                                  
+     3                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     4                                  global start        
+     5                                  
+     6                                  ; declare external functions needed by our program
+     7                                  extern exit, scanf, printf, fopen, fprintf, fclose ; add printf and scanf as extern functions     
+     8                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+     9                                  import scanf msvcrt.dll    ; tell the assembler that function scanf is found in msvcrt.dll library
+    10                                  import printf msvcrt.dll
+    11                                  import fopen msvcrt.dll
+    12                                  import fprintf msvcrt.dll
+    13                                  import fclose msvcrt.dll
+    14                                  
+    15                                  
+    16                                  ; our data is declared here (the variables needed by our program)
+    17                                  segment data use32 class=data
+    18 00000000 546865206F75747075-         read_file_msg db "The output file name (with extension): ", 0
+    18 00000009 742066696C65206E61-
+    18 00000012 6D6520287769746820-
+    18 0000001B 657874656E73696F6E-
+    18 00000024 293A2000           
+    19                                      
+    20 00000028 00<rept>                    file_name times 32 db 0 ; reserve a memory space for the file name
+    21 00000048 257300                      format_f db "%s", 0 ; format for reading the file name
+    22                                  
+    23 0000004B 506C6561736520656E-         read_int_msg db "Please enter each number below one by one, you can stop by typing '0'.", 10, 13, 0
+    23 00000054 746572206561636820-
+    23 0000005D 6E756D626572206265-
+    23 00000066 6C6F77206F6E652062-
+    23 0000006F 79206F6E652C20796F-
+    23 00000078 752063616E2073746F-
+    23 00000081 702062792074797069-
+    23 0000008A 6E67202730272E0A0D-
+    23 00000093 00                 
+    24                                      
+    25 00000094 256400                      format_r db "%d", 0 ; format for reading the integers
+    26                                      
+    27 00000097 4E756D626572202564-         read_number_msg db "Number %d: ", 0
+    27 000000A0 3A2000             
+    28                                      
+    29 000000A3 00000000<rept>              int_list times 100 dd 0     ; space to hold the list of integers
+    30                                  
+    31 00000233 00000000                    num dd 0                    ; the current integer read
+    32 00000237 00000000                    len dd 0                    ; the actual length of the list
+    33                                      
+    34 0000023B 00000000                    cnt dd 0 ; variable used for counting the number of 1's
+    35                                      
+    36 0000023F 7700                        access_mode db "w", 0
+    37 00000241 FFFFFFFF                    file_descriptor dd -1
+    38                                      
+    39 00000245 256428313029202D3E-         format_result db "%d(10) -> %X(16) has %d occurance(s) of 1's in binary", 10, 0
+    39 0000024E 202558283136292068-
+    39 00000257 6173202564206F6363-
+    39 00000260 7572616E6365287329-
+    39 00000269 206F66203127732069-
+    39 00000272 6E2062696E6172790A-
+    39 0000027B 00                 
+    40                                      
+    41 0000027C 537563636573732120-         end_read_msg db "Success! The result will be in the file: %s", 10, 13, 0
+    41 00000285 54686520726573756C-
+    41 0000028E 742077696C6C206265-
+    41 00000297 20696E207468652066-
+    41 000002A0 696C653A2025730A0D-
+    41 000002A9 00                 
+    42                                  
+    43                                  ; our code starts here
+    44                                  segment code use32 class=code
+    45                                      start:
+    46 00000000 68[00000000]                    push dword read_file_msg
+    47 00000005 FF15[00000000]                  call [printf]
+    48 0000000B 83C404                          add esp, 4 * 1
+    49                                          
+    50 0000000E 68[28000000]                    push dword file_name
+    51 00000013 68[48000000]                    push dword format_f
+    52 00000018 FF15[00000000]                  call [scanf]
+    53 0000001E 83C408                          add esp, 4 * 2
+    54                                          
+    55 00000021 68[4B000000]                    push dword read_int_msg
+    56 00000026 FF15[00000000]                  call [printf]
+    57 0000002C 83C404                          add esp, 4 * 1
+    58                                          
+    59 0000002F FC                              cld
+    60 00000030 31DB                            xor ebx, ebx ; count in ebx
+    61 00000032 B964000000                      mov ecx, 100 ; loop 100 times
+    62                                          
+    63                                          readNumbers:
+    64 00000037 51                                  push ecx
+    65                                              
+    66 00000038 53                                  push dword ebx
+    67 00000039 68[97000000]                        push dword read_number_msg
+    68 0000003E FF15[00000000]                      call [printf]
+    69 00000044 83C408                              add esp, 4 * 2
+    70                                              
+    71 00000047 68[33020000]                        push dword num
+    72 0000004C 68[94000000]                        push dword format_r
+    73 00000051 FF15[00000000]                      call [scanf]
+    74 00000057 83C408                              add esp, 4 * 2
+    75                                              
+    76 0000005A A1[33020000]                        mov eax, [num]
+    77 0000005F 83F800                              cmp eax, 0
+    78 00000062 740B                                je stopRead
+    79                                              
+    80 00000064 89049D[A3000000]                    mov dword [int_list + 4*ebx], eax
+    81                                              
+    82 0000006B 43                                  inc ebx
+    83 0000006C 59                                  pop ecx
+    84 0000006D E2C8                            loop readNumbers
+    85                                              
+    86                                          stopRead:
+    87 0000006F 891D[37020000]                      mov dword [len], ebx
+    88                                              
+    89                                          ; open the output file
+    90 00000075 68[3F020000]                    push dword access_mode
+    91 0000007A 68[28000000]                    push dword file_name
+    92 0000007F FF15[00000000]                  call [fopen]
+    93 00000085 83C408                          add esp, 4 * 2
+    94                                          
+    95                                          ; check if the file was successfully opened / created (EAX != 0)
+    96 00000088 83F800                          cmp eax, 0
+    97 0000008B 7470                            je finishProgram
+    98                                          
+    99 0000008D A3[41020000]                    mov [file_descriptor], eax ; store the file descriptor returned by fopen
+   100                                          
+   101                                          ; display the numbers in base 10, their conversion in base 16 and
+   102                                          ; the number of 1's in each's binary representation
+   103 00000092 8B0D[37020000]                  mov ecx, [len]
+   104 00000098 BE[A3000000]                    mov esi, int_list
+   105                                          printResults:
+   106 0000009D 51                                  push ecx
+   107                                              
+   108 0000009E AD                                  lodsd
+   109                                              
+   110 0000009F C705[3B020000]0000-                 mov [cnt], dword 0 ; reset the counter variable
+   110 000000A7 0000               
+   111 000000A9 89C3                                mov ebx, eax ; copy EAX to EBX
+   112 000000AB B920000000                          mov ecx, 32 ; we need to loop through EBX a number of times equal to the registry's size (dword -> size 32)
+   113                                          
+   114                                              numberOfOnes:
+   115 000000B0 D1EB                                    shr ebx, 1 ; we shift EBX to the right with one position (also setting CF equal to the byte that was shifted)
+   116                                                  
+   117 000000B2 7306                                    jnc notAOne ; don't count the current byte if it is not 1
+   118                                                  
+   119 000000B4 FF05[3B020000]                          inc dword [cnt] ; increment the counter variable by 1 if CF=1
+   120                                                  
+   121                                                  notAOne:
+   122                                              
+   123 000000BA E2F4                                loop numberOfOnes
+   124                                              
+   125 000000BC FF35[3B020000]                      push dword [cnt]
+   126 000000C2 50                                  push dword eax
+   127 000000C3 50                                  push dword eax
+   128 000000C4 68[45020000]                        push dword format_result
+   129 000000C9 FF35[41020000]                      push dword [file_descriptor]
+   130 000000CF FF15[00000000]                      call [fprintf]
+   131 000000D5 83C414                              add esp, 4 * 5
+   132                                              
+   133 000000D8 59                                  pop ecx
+   134 000000D9 E2C2                            loop printResults
+   135                                          
+   136                                          ; call fclose() to close the file
+   137 000000DB FF35[41020000]                  push dword [file_descriptor]
+   138 000000E1 FF15[00000000]                  call [fclose]
+   139 000000E7 83C404                          add esp, 4 * 1
+   140                                          
+   141 000000EA 68[28000000]                    push dword file_name
+   142 000000EF 68[7C020000]                    push dword end_read_msg
+   143 000000F4 FF15[00000000]                  call [printf]
+   144 000000FA 83C408                          add esp, 4 * 2
+   145                                          
+   146                                          finishProgram:
+   147                                      
+   148                                          ; exit(0)
+   149 000000FD 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   150 000000FF FF15[00000000]                  call    [exit]       ; call exit to terminate the program

@@ -1,0 +1,6 @@
+345(10) -> 159(16) has 5 occurance(s) of 1's in binary
+32(10) -> 20(16) has 1 occurance(s) of 1's in binary
+153(10) -> 99(16) has 4 occurance(s) of 1's in binary
+758(10) -> 2F6(16) has 7 occurance(s) of 1's in binary
+4(10) -> 4(16) has 1 occurance(s) of 1's in binary
+75(10) -> 4B(16) has 4 occurance(s) of 1's in binary

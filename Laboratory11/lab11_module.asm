@@ -1,3 +1,5 @@
+; 28. Read a sentence from the keyboard. Count the letters from each word and print the numbers on the screen.
+
 bits 32
 
 ; informing the assembler that we want to make the _countLetters function available for other modules

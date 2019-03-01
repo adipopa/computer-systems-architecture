@@ -45,10 +45,11 @@
     44 00000027 AA                                  stosb ; store the value of the byte AL in EDI
     45                                              
     46                                              nonDivisible:
-    47 00000028 E2E8                            loop multiplesOfTen ; if there are more elements (ecx>0) resume the loop.
-    48                                          
-    49                                          finishProgram: ; the end of the program
-    50                                      
-    51                                          ; exit(0)
-    52 0000002A 6A00                            push    dword 0      ; push the parameter for exit onto the stack
-    53 0000002C FF15[00000000]                  call    [exit]       ; call exit to terminate the program
+    47                                              
+    48 00000028 E2E8                            loop multiplesOfTen ; if there are more elements (ecx>0) resume the loop.
+    49                                          
+    50                                          finishProgram: ; the end of the program
+    51                                      
+    52                                          ; exit(0)
+    53 0000002A 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+    54 0000002C FF15[00000000]                  call    [exit]       ; call exit to terminate the program

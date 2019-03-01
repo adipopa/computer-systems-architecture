@@ -1,0 +1,8 @@
+13(10) -> D(16) has 42 occurances of 1's in binary
+12(10) -> C(16) has 42 occurances of 1's in binary
+6(10) -> 6(16) has 42 occurances of 1's in binary
+3(10) -> 3(16) has 42 occurances of 1's in binary
+37(10) -> 25(16) has 42 occurances of 1's in binary
+42(10) -> 2A(16) has 42 occurances of 1's in binary
+21(10) -> 15(16) has 42 occurances of 1's in binary
+

@@ -1,0 +1,220 @@
+     1                                  ; 13. Three strings of characters are given. Show the longest common suffix for each of the three pairs of two strings that can be formed
+     2                                  
+     3                                  bits 32 ; assembling for the 32 bits architecture
+     4                                  
+     5                                  ; declare the EntryPoint (a label defining the very first instruction of the program)
+     6                                  global start        
+     7                                  
+     8                                  ; declare external functions needed by our program
+     9                                  extern exit, scanf, printf ; add printf as extern function     
+    10                                  import exit msvcrt.dll    ; exit is a function that ends the calling process. It is defined in msvcrt.dll
+    11                                  import scanf msvcrt.dll    ; tell the assembler that function scanf is found in msvcrt.dll library
+    12                                  import printf msvcrt.dll    ; tell the assembler that function printf is found in msvcrt.dll library
+    13                                  
+    14                                  %include "longest_common_suffix.asm"
+     1                              <1> ; we need to avoid multiple inclusion of this file
+     2                              <1> %ifndef _LONGEST_COMMON_SUFFIX_ASM_ ; if _LONGEST_COMMON_SUFFIX_ASM_ is not defined
+     3                              <1> %define _LONGEST_COMMON_SUFFIX_ASM_
+     4                              <1> 
+     5                              <1> segment data use32 class=data
+     6 00000000 00000000            <1>     l1 dd 0 ; temporary variables for storing the length of the strings to compare
+     7 00000004 00000000            <1>     l2 dd 0
+     8                              <1> 
+     9 00000008 00<rept>            <1> 	d times 100 db 0 ; reserve a memory space for the destination string d and initialize it
+    10                              <1>                       ; these will be the strings that will contain the longest common suffix for each of the three pairs
+    11                              <1>                      
+    12 0000006C 00<rept>            <1>     aux times 100 db 0 ; auxiliary string for reversing the output
+    13                              <1> 
+    14                              <1> ; procedure for getting the length of a given string
+    15                              <1> getStringLength:
+    16 000000D0 8B742404            <1>     mov esi, [esp + 4]
+    17 000000D4 B900000000          <1>     mov ecx, 0
+    18                              <1>     
+    19                              <1>     ; take each byte (character) one by one until EAX is 0, count the number of characters and put them in EAX
+    20                              <1>     strLen:
+    21 000000D9 AC                  <1>         lodsb
+    22 000000DA 83F800              <1>         cmp eax, 0
+    23 000000DD 7405                <1>         je stop
+    24 000000DF 83C101              <1>         add ecx, 1
+    25 000000E2 EBF5                <1>         jmp strLen
+    26                              <1>     stop:
+    27                              <1>     
+    28                              <1>     ; will return the number of characters in the argument string
+    29 000000E4 89C8                <1>     mov eax, ecx
+    30 000000E6 C20400              <1>     ret 4
+    31                              <1> 
+    32                              <1> ; longest common suffix procedure definition
+    33                              <1> longest_common_suffix: 
+    34 000000E9 BF00000000          <1>     mov edi, 0 ; initialize EDI with 0
+    35                              <1>     
+    36                              <1>     ; set the iterator registers to the length of the strings to compare minus one
+    37 000000EE FF742404            <1>     push dword [esp + 4] ; push the first string onto the stack
+    38 000000F2 E8D9FFFFFF          <1>     call getStringLength ; procedure call
+    39                              <1>                          ; EAX = getStringLength(first_string)
+    40 000000F7 A3[00000000]        <1>     mov [l1], eax ; temporary store the returned length
+    41                              <1>     
+    42 000000FC FF742408            <1>     push dword [esp + 4*2]
+    43 00000100 E8CBFFFFFF          <1>     call getStringLength
+    44 00000105 A3[04000000]        <1>     mov [l2], eax
+    45                              <1>     
+    46 0000010A 8B35[00000000]      <1>     mov esi, [l1]
+    47 00000110 8B1D[04000000]      <1>     mov ebx, [l2]
+    48                              <1>     
+    49                              <1>     checkCommonLetters:
+    50 00000116 8B542404            <1>             mov edx, [esp + 4]
+    51 0000011A 8A4432FF            <1>             mov al, [edx + esi - 1]
+    52                              <1>             
+    53 0000011E 8B542408            <1>             mov edx, [esp + 4*2]
+    54 00000122 8A4C1AFF            <1>             mov cl, [edx + ebx - 1]
+    55                              <1>             
+    56 00000126 38C8                <1>             cmp al, cl
+    57 00000128 750B                <1>             jne nextPair
+    58                              <1>             
+    59 0000012A 8887[6C000000]      <1>             mov [aux + edi], al
+    60 00000130 47                  <1>             inc edi
+    61                              <1>             
+    62 00000131 4E                  <1>             dec esi
+    63 00000132 4B                  <1>             dec ebx
+    64                              <1>             
+    65 00000133 EBE1                <1>             jmp checkCommonLetters
+    66                              <1>             
+    67                              <1>     nextPair:
+    68                              <1>     
+    69 00000135 BE00000000          <1>     mov esi, 0
+    70 0000013A B964000000          <1>     mov ecx, 100
+    71 0000013F B8[08000000]        <1>     mov eax, d
+    72                              <1>     
+    73                              <1>     reverseOutputString:
+    74 00000144 8A9F[6B000000]      <1>         mov bl, [aux + edi - 1]
+    75 0000014A 881C30              <1>         mov [eax + esi], bl
+    76                              <1>         
+    77 0000014D 4F                  <1>         dec edi
+    78 0000014E 46                  <1>         inc esi
+    79                              <1>         
+    80 0000014F E2F3                <1>     loop reverseOutputString
+    81                              <1>     
+    82 00000151 C20800              <1>     ret 4*2
+    83                              <1> %endif
+    15                                  
+    16                                  ; our data is declared here (the variables needed by our program)
+    17                                  segment data use32 class=data
+    18 00000154 00<rept>                    s1 times 100 db 0 ; reserve a memory space for the initial string s1
+    19 000001B8 00<rept>                    s2 times 100 db 0 ; same for s2
+    20 0000021C 00<rept>                    s3 times 100 db 0 ; same for s3
+    21                                      
+    22 00000280 506C6561736520656E-         message1 db "Please enter the first string s1: ", 0 ; ask the user to input the first string
+    22 00000289 746572207468652066-
+    22 00000292 697273742073747269-
+    22 0000029B 6E672073313A2000   
+    23 000002A3 506C6561736520656E-         message2 db "Please enter the second string s2: ", 0 ; same for second string
+    23 000002AC 746572207468652073-
+    23 000002B5 65636F6E6420737472-
+    23 000002BE 696E672073323A2000 
+    24 000002C7 506C6561736520656E-         message3 db "Please enter the third string s3: ", 0 ; same for third string
+    24 000002D0 746572207468652074-
+    24 000002D9 686972642073747269-
+    24 000002E2 6E672073333A2000   
+    25                                      
+    26 000002EA 257300                      input_format db "%s", 0 ; specify that we're expecting a string to be read
+    27                                      
+    28 000002ED 546865206C6F6E6765-         format_string db `The longest common suffix of strings s%d and s%d: %s\n`, 0 ; %d and %s will be replaced with a number and a string respectivly
+    28 000002F6 737420636F6D6D6F6E-
+    28 000002FF 20737566666978206F-
+    28 00000308 6620737472696E6773-
+    28 00000311 2073256420616E6420-
+    28 0000031A 7325643A2025730A00 
+    29                                  
+    30                                  ; our code starts here
+    31                                  segment code use32 class=code
+    32                                      start:
+    33                                          ; will call printf(message1) => will print "Please enter the first string s1: "
+    34                                          ; place parameters on stack
+    35 00000000 68[80020000]                    push dword message1 ; on the stack is placed the address of the string, not its value
+    36 00000005 FF15[00000000]                  call [printf] ; call function printf for printing
+    37 0000000B 83C404                          add esp, 4 * 1 ; free parameters on the stack; 4 = size of dword; 1 = number of parameters
+    38                                          
+    39                                          ; will scanf(input_format, s1) => will read a string in variable s1
+    40                                          ; place parameters on stack from right to left
+    41 0000000E 68[54010000]                    push dword s1 ; address of s1, not the value
+    42 00000013 68[EA020000]                    push dword input_format
+    43 00000018 FF15[00000000]                  call [scanf] ; call function scanf for reading
+    44 0000001E 83C408                          add esp, 4 * 2 ; free parameters on the stack; 4 = size of dword; 2 = number of parameters
+    45                                          
+    46                                          ; will to the same for the second number => will print "Please enter the second string s2: "
+    47 00000021 68[A3020000]                    push dword message2
+    48 00000026 FF15[00000000]                  call [printf]
+    49 0000002C 83C404                          add esp, 4 * 1
+    50                                          
+    51                                          ; will scanf(input_format, s2) => will read a string in variable s2
+    52 0000002F 68[B8010000]                    push dword s2
+    53 00000034 68[EA020000]                    push dword input_format
+    54 00000039 FF15[00000000]                  call [scanf]
+    55 0000003F 83C408                          add esp, 4 * 2
+    56                                          
+    57                                          ; will to the same for the second number => will print "Please enter the third string s3: "
+    58 00000042 68[C7020000]                    push dword message3
+    59 00000047 FF15[00000000]                  call [printf]
+    60 0000004D 83C404                          add esp, 4 * 1
+    61                                          
+    62                                          ; will scanf(input_format, s3) => will read a string in variable s3
+    63 00000050 68[1C020000]                    push dword s3
+    64 00000055 68[EA020000]                    push dword input_format
+    65 0000005A FF15[00000000]                  call [scanf]
+    66 00000060 83C408                          add esp, 4 * 2
+    67                                      
+    68                                      
+    69                                          ; first step: compute the longest common suffix of the first and second string
+    70                                          
+    71                                          ; push parameters s2 and s1 onto the stack from right to left
+    72 00000063 68[B8010000]                    push dword s2
+    73 00000068 68[54010000]                    push dword s1
+    74 0000006D E8(E9000000)                    call longest_common_suffix ; procedure call
+    75                                                                     ; EAX = longest_common_suffix(s1, s2)
+    76                                  
+    77                                          ; display the result
+    78 00000072 50                              push dword eax
+    79 00000073 6A02                            push dword 2
+    80 00000075 6A01                            push dword 1
+    81 00000077 68[ED020000]                    push format_string
+    82 0000007C FF15[00000000]                  call [printf]
+    83 00000082 83C410                          add esp, 4*4
+    84                                          
+    85                                          
+    86                                          ; second step: compute the longest common suffix of the first and third string
+    87                                          
+    88                                          ; push parameters s3 and s1 onto the stack from right to left
+    89 00000085 68[1C020000]                    push dword s3
+    90 0000008A 68[54010000]                    push dword s1
+    91 0000008F E8(E9000000)                    call longest_common_suffix ; procedure call
+    92                                                                     ; EAX = longest_common_suffix(s1, s3)
+    93                                  
+    94                                          ; display the result
+    95 00000094 50                              push dword eax
+    96 00000095 6A03                            push dword 3
+    97 00000097 6A01                            push dword 1
+    98 00000099 68[ED020000]                    push format_string
+    99 0000009E FF15[00000000]                  call [printf]
+   100 000000A4 83C410                          add esp, 4*4
+   101                                          
+   102                                          
+   103                                          ; third and final step: compute the longest common suffix of the second and third string
+   104                                          
+   105                                          ; push parameters s3 and s2 onto the stack from right to left
+   106 000000A7 68[1C020000]                    push dword s3
+   107 000000AC 68[B8010000]                    push dword s2
+   108 000000B1 E8(E9000000)                    call longest_common_suffix ; procedure call
+   109                                                                     ; EAX = longest_common_suffix(s2, s3)
+   110                                  
+   111                                          ; display the result
+   112 000000B6 50                              push dword eax
+   113 000000B7 6A03                            push dword 3
+   114 000000B9 6A02                            push dword 2
+   115 000000BB 68[ED020000]                    push format_string
+   116 000000C0 FF15[00000000]                  call [printf]
+   117 000000C6 83C410                          add esp, 4*4
+   118                                          
+   119                                          finishProgram: ; end of the program
+   120                                      
+   121                                          ; exit(0)
+   122 000000C9 6A00                            push    dword 0      ; push the parameter for exit onto the stack
+   123 000000CB FF15[00000000]                  call    [exit]       ; call exit to terminate the program

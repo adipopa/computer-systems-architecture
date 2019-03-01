@@ -1,3 +1,5 @@
+// 28. Read a sentence from the keyboard. Count the letters from each word and print the numbers on the screen.
+
 #include <stdio.h>
 #include <string.h>
 
